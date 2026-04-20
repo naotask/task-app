@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タスクアプリ</title>
+  <style>
+    body {
+      font-family: Meiryo, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      border: 1px solid #ccc;
+      min-height: 300px;
+      background: white;
+    }
+
+    li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+
+    li:last-child {
+      border-bottom: none;
+    }
+
+    li.completed {
+      color: gray;
+    }
+
+    li.today {
+      color: blue;
+      font-weight: bold;
+    }
+
+    li.past {
+      color: gray;
+    }
+
+    li.selected {
+      background: #dbeafe;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>タスクアプリ</h1>
+
+    <div class="input-group">
+      <label for="dateInput">日付</label>
+      <input type="date" id="dateInput">
+    </div>
+
+    <div class="input-group">
+      <label for="timeInput">時間</label>
+      <input type="time" id="timeInput">
+    </div>
+
+    <div class="input-group">
+      <label for="taskInput">タスク内容</label>
+      <input type="text" id="taskInput" placeholder="例：認定調査">
+    </div>
+
+    <div class="button-row">
+      <button onclick="addTask()">追加</button>
+      <button onclick="deleteTask()">削除</button>
+      <button onclick="toggleComplete()">完了</button>
+      <button onclick="showAllTasks()">全件</button>
+      <button onclick="showTodayTasks()">今日</button>
+      <button onclick="showUnfinishedTasks()">未完了</button>
+      <button onclick="showCompletedTasks()">完了のみ</button>
+      <button onclick="showSelectedDateTasks()">選択日</button>
+    </div>
+
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    let tasksData = JSON.parse(localStorage.getItem("tasksData")) || [];
+    let displayTaskMap = [];
+    let selectedIndex = null;
+    let editingId = null;
+
+    function saveTasks() {
+      localStorage.setItem("tasksData", JSON.stringify(tasksData));
+    }
+
+    function getTodayText() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return `${y}/${m}/${d}`;
+    }
+
+    function sortTasks() {
+      tasksData.sort((a, b) => {
+        if (a.completed !== b.completed) {
+          return a.completed - b.completed;
+        }
+        return (a.date + " " + a.time).localeCompare(b.date + " " + b.time);
+      });
+    }
+
+    function refreshListbox(displayTasks) {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+      displayTaskMap = displayTasks;
+
+      const today = getTodayText();
+
+      displayTasks.forEach((task, index) => {
+        const li = document.createElement("li");
+        const shortDate = task.date.slice(5);
+
+        li.textContent =
+          (task.completed ? "完了：" : "") +
+          `${shortDate} ${task.time} - ${task.content}`;
+
+        if (task.completed) {
+          li.classList.add("completed");
+        } else if (task.date < today) {
+          li.classList.add("past");
+        } else if (task.date === today) {
+          li.classList.add("today");
+        }
+
+        if (selectedIndex === index) {
+          li.classList.add("selected");
+        }
+
+        li.addEventListener("click", () => {
+          selectedIndex = index;
+          refreshListbox(displayTaskMap);
+        });
+
+        li.addEventListener("dblclick", () => {
+          loadTaskToEntry(index);
+        });
+
+        taskList.appendChild(li);
+      });
+    }
+
+    function addTask() {
+      const dateValue = document.getElementById("dateInput").value;
+      const timeValue = document.getElementById("timeInput").value;
+      const taskValue = document.getElementById("taskInput").value.trim();
+
+      if (!dateValue || !timeValue || !taskValue) {
+        alert("全部入力してください");
+        return;
+      }
+
+      const dateText = dateValue.replace(/-/g, "/");
+
+      if (editingId !== null) {
+        const idx = tasksData.findIndex(t => t.id === editingId);
+        if (idx !== -1) {
+          tasksData[idx].date = dateText;
+          tasksData[idx].time = timeValue;
+          tasksData[idx].content = taskValue;
+        }
+        editingId = null;
+      } else {
+        tasksData.push({
+          id: crypto.randomUUID(),
+          date: dateText,
+          time: timeValue,
+          content: taskValue,
+          completed: false
+        });
+      }
+
+      sortTasks();
+      saveTasks();
+      showAllTasks();
+
+      document.getElementById("dateInput").value = "";
+      document.getElementById("timeInput").value = "";
+      document.getElementById("taskInput").value = "";
+    }
+
+    function deleteTask() {
+      if (selectedIndex === null) {
+        alert("選択してください");
+        return;
+      }
+
+      const target = displayTaskMap[selectedIndex];
+      tasksData = tasksData.filter(t => t.id !== target.id);
+
+      saveTasks();
+      selectedIndex = null;
+      showAllTasks();
+    }
+
+    function toggleComplete() {
+      if (selectedIndex === null) {
+        alert("選択してください");
+        return;
+      }
+
+      const target = displayTaskMap[selectedIndex];
+      const idx = tasksData.findIndex(t => t.id === target.id);
+
+      if (idx !== -1) {
+        tasksData[idx].completed = !tasksData[idx].completed;
+      }
+
+      sortTasks();
+      saveTasks();
+      selectedIndex = null;
+      showAllTasks();
+    }
+
+    function loadTaskToEntry(index) {
+      const task = displayTaskMap[index];
+      editingId = task.id;
+
+      document.getElementById("dateInput").value = task.date.replace(/\//g, "-");
+      document.getElementById("timeInput").value = task.time;
+      document.getElementById("taskInput").value = task.content;
+    }
+
+    function showAllTasks() {
+      selectedIndex = null;
+      refreshListbox(tasksData);
+    }
+
+    function showTodayTasks() {
+      const today = getTodayText();
+      const todayTasks = tasksData.filter(t => t.date === today);
+      selectedIndex = null;
+      refreshListbox(todayTasks);
+    }
+
+    function showUnfinishedTasks() {
+      const list = tasksData.filter(t => !t.completed);
+      selectedIndex = null;
+      refreshListbox(list);
+    }
+
+    function showCompletedTasks() {
+      const list = tasksData.filter(t => t.completed);
+      selectedIndex = null;
+      refreshListbox(list);
+    }
+
+    function showSelectedDateTasks() {
+      const dateValue = document.getElementById("dateInput").value;
+
+      if (!dateValue) {
+        alert("日付を選んでください");
+        return;
+      }
+
+      const selectedDate = dateValue.replace(/-/g, "/");
+      const list = tasksData.filter(t => t.date === selectedDate);
+
+      selectedIndex = null;
+      refreshListbox(list);
+    }
+
+    sortTasks();
+    showAllTasks();
+  </script>
+</body>
+</html>
