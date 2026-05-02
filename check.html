@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>利用者別 書類チェックアプリ</title>
+<style>
+body {
+  font-family: Meiryo, sans-serif;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.app {
+  max-width: 900px;
+  margin: auto;
+}
+
+input, select {
+  padding: 3px;
+  font-size: 12px;
+  margin: 2px;
+}
+
+#checklist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.check-row input[type="checkbox"] {
+  transform: scale(0.8);
+}
+
+.check-row input[type="date"] {
+  font-size: 11px;
+  padding: 2px;
+}
+
+button {
+  padding: 4px 8px;
+  font-size: 12px;
+  margin: 3px;
+}
+
+.done {
+  background-color: #d4edda;
+}
+
+.unfinished-item {
+  margin: 4px 0;
+}
+
+.unfinished-text {
+  cursor: pointer;
+  color: blue;
+}
+
+.unfinished-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-btn {
+  margin-left: 10px;
+  background: #dc3545;  /* 赤 */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+
+body {
+  background-color: #f5f7fa;
+}
+
+.app {
+  max-width: 900px;
+  margin: auto;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h2>利用者別 書類チェックアプリ</h2>
+
+  <label>対応日</label><br>
+  <input type="date" id="mainDate"><br>
+
+  <label>利用者名</label><br>
+  <input id="newUserName" placeholder="新しい利用者名">
+  <button onclick="addUser()">登録</button>
+  <select id="userList"></select><br>
+
+  <label>業務内容</label><br>
+  <select id="taskSelect">
+    <option value="">選択してください</option>
+    <option value="新規契約">新規契約</option>
+    <option value="担当者会議">担当者会議</option>
+    <option value="モニタリング">モニタリング</option>
+    <option value="更新">更新</option>
+  </select>
+
+  <h3>必要書類チェックリスト</h3>
+  <h3>メモ</h3>
+  <textarea id="memo" rows="3" style="width:100%;"></textarea>  
+  <div id="checklist"></div>
+
+  <button onclick="saveData()">保存</button>
+  <button onclick="showUnfinished()">未完了一覧</button>
+ 
+  <h3>未完了一覧</h3>
+  <div id="result">まだ表示されていません</div>
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let records = JSON.parse(localStorage.getItem("records")) || [];
+
+const checklists = {
+  "新規契約": [
+    "居宅サービス計画作成依頼届出書",
+    "主治医連携連絡票",
+    "フェイスシート作成",
+    "アセスメントシート作成",
+    "ケアプラン原案作成",
+    "利用表・提供表作成",
+    "利用事業所情報提供",
+    "サービス担当者会議の調整",
+    "介護保険証の写し",
+    "負担割合証の写し",
+    "重要事項説明書の説明・署名",
+    "契約書の説明・署名",
+    "個人情報使用同意書",
+    "利用サービス事業者への依頼",
+    "ケアプラン同意・交付",
+    "支援経過記録"
+  ],
+  "担当者会議": [
+    "ケアプラン原案",
+    "サービス担当者会議の要点",
+    "欠席事業所への照会記録",
+    "ケアプラン同意・交付",
+    "事業所への交付記録",
+    "支援経過記録"
+  ],
+  "モニタリング": [
+    "モニタリング実施",
+    "利用者の状態確認",
+    "サービス利用状況の確認",
+    "モニタリング表の記入",
+    "支援経過記録"
+  ],
+  "更新": [
+    "認定更新結果の確認",
+    "アセスメント再実施",
+    "ケアプラン原案作成",
+    "利用表・提供表策歳",
+    "サービス担当者会議の調整",
+    "ケアプラン同意・交付",
+    "事業所への交付記録",
+    "支援経過記録"
+  ]
+};
+
+function loadUsers() {
+  const list = document.getElementById("userList");
+  list.innerHTML = "";
+
+  users.forEach(name => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    list.appendChild(option);
+  });
+}
+
+function addUser() {
+  const input = document.getElementById("newUserName");
+  const name = input.value.trim();
+
+  if (!name) {
+    alert("利用者名を入力してください");
+    return;
+  }
+
+  if (!users.includes(name)) {
+    users.push(name);
+    localStorage.setItem("users", JSON.stringify(users));
+  }
+
+  input.value = "";
+  loadUsers();
+  document.getElementById("userList").value = name;
+}
+
+function showChecklist() {
+
+  const task = document.getElementById("taskSelect").value;
+  const area = document.getElementById("checklist");
+
+  area.innerHTML = "";
+  area.classList.remove("done");
+
+  if (!task) return;
+
+  checklists[task].forEach(item => {
+    const div = document.createElement("div");
+    div.className = "check-row";
+
+    div.innerHTML = `
+      <label>
+        <input type="checkbox"> ${item}
+      </label>
+      <input type="date">
+    `;
+
+    area.appendChild(div);
+  });
+
+  // ★ここから追加（←これが③）
+  const name = document.getElementById("userList").value;
+  const saved = records.find(r => r.name === name && r.task === task);
+
+  if (saved && saved.checklist) {
+    const rows = document.querySelectorAll("#checklist .check-row");
+
+    rows.forEach(row => {
+      const label = row.querySelector("label").textContent.trim();
+      const found = saved.checklist.find(item => item.label === label);
+
+      if (found) {
+        row.querySelector("input[type='checkbox']").checked = found.checked;
+        row.querySelector("input[type='date']").value = found.date;
+      }
+    });
+
+    checkAllDone();
+  }
+
+  // ★メモ復元（これも③）
+  if (saved && saved.memo) {
+    document.getElementById("memo").value = saved.memo;
+  } else {
+    document.getElementById("memo").value = "";
+  }
+
+} // ←この直前まで
+
+
+function checkAllDone() {
+  const area = document.getElementById("checklist");
+  const checks = document.querySelectorAll("#checklist input[type='checkbox']");
+
+  if (checks.length === 0) return;
+
+  const allChecked = Array.from(checks).every(cb => cb.checked);
+
+  if (allChecked) {
+    area.classList.add("done");
+  } else {
+    area.classList.remove("done");
+  }
+}
+
+function saveData() {
+  const name = document.getElementById("userList").value;
+  const task = document.getElementById("taskSelect").value;
+  const memo = document.getElementById("memo").value;
+  const rows = document.querySelectorAll("#checklist .check-row");
+  if (!name || !task) {
+    alert("利用者と業務内容を選択してください");
+    return;
+  }
+
+  let checklistData = [];
+  let hasUnfinished = false;
+
+  rows.forEach(row => {
+    const label = row.querySelector("label").textContent.trim();
+    const checked = row.querySelector("input[type='checkbox']").checked;
+    const date = row.querySelector("input[type='date']").value;
+
+    if (!checked) {
+      hasUnfinished = true;
+    }
+
+    checklistData.push({
+      label: label,
+      checked: checked,
+      date: date
+    });
+  });
+
+  const index = records.findIndex(r => r.name === name && r.task === task);
+
+  const newRecord = {
+    name: name,
+    task: task,
+    unfinished: hasUnfinished,
+    checklist: checklistData,
+    memo: memo
+  };
+
+  if (index !== -1) {
+    records[index] = newRecord;
+  } else {
+    records.push(newRecord);
+  }
+
+  localStorage.setItem("records", JSON.stringify(records));
+
+  alert("保存しました");
+  
+  showChecklist();
+  showUnfinished();
+}
+
+function showUnfinished() {
+  const result = document.getElementById("result");
+  const list = records.filter(r => r.unfinished);
+
+  if (list.length === 0) {
+    result.textContent = "未完了なし";
+    return;
+  }
+
+  result.innerHTML = "";
+
+  list.forEach(record => {
+    const div = document.createElement("div");
+    div.className = "unfinished-item";
+
+    const text = document.createElement("span");
+    text.className = "unfinished-text";
+    text.textContent = `${record.name}（${record.task}）`;
+
+    text.addEventListener("click", () => {
+      document.getElementById("userList").value = record.name;
+      document.getElementById("taskSelect").value = record.task;
+      showChecklist();
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "削除";
+    deleteBtn.className = "delete-btn";
+
+    deleteBtn.addEventListener("click", () => {
+      if (confirm("この未完了データを削除しますか？")) {
+        records = records.filter(r => !(r.name === record.name && r.task === record.task));
+        localStorage.setItem("records", JSON.stringify(records));
+        showUnfinished();
+      }
+    });
+
+   
+    div.appendChild(text);
+    div.appendChild(deleteBtn);
+    result.appendChild(div);
+  });
+}
+
+document.getElementById("taskSelect").addEventListener("change", showChecklist);
+
+loadUsers();
+showUnfinished();
+</script>
+
+</body>
+</html>
