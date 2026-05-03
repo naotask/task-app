@@ -114,6 +114,7 @@ button {
   <input id="newUserName" placeholder="新しい利用者名">
   <button onclick="addUser()">登録</button>
   <select id="userList"></select><br>
+  <button onclick="deleteUser()">利用者削除</button>
 
   <label>業務内容</label><br>
   <select id="taskSelect">
@@ -381,6 +382,25 @@ function showUnfinished() {
     div.appendChild(deleteBtn);
     result.appendChild(div);
   });
+}
+
+function deleteUser() {
+  const name = document.getElementById("userList").value;
+
+  if (!name) return;
+
+  if (!confirm(name + " を削除しますか？")) return;
+
+  users = users.filter(u => u !== name);
+  localStorage.setItem("users", JSON.stringify(users));
+
+  records = records.filter(r => r.name !== name);
+  localStorage.setItem("records", JSON.stringify(records));
+
+  loadUsers();
+  showUnfinished();
+
+  alert("削除しました");
 }
 
 document.getElementById("taskSelect").addEventListener("change", showChecklist);
