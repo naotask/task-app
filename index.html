@@ -3,27 +3,221 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>タスクアプリ</title>
+  <title>ケアマネ予定管理</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Meiryo, sans-serif;
-      background: #f5f5f5;
+      background: #f3f4f6;
       margin: 0;
-      padding: 20px;
+      padding: 16px;
+      color: #222;
+    }
+
+    button,
+    input,
+    textarea {
+      font-family: inherit;
     }
 
     .app {
-      max-width: 900px;
+      max-width: 1200px;
       margin: 0 auto;
       background: white;
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
     }
 
     h1 {
       text-align: center;
-      margin-bottom: 20px;
+      margin: 0 0 20px;
+      font-size: 26px;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .calendar-area,
+    .detail-area {
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .calendar-header h2 {
+      min-width: 180px;
+      text-align: center;
+      margin: 0;
+      font-size: 22px;
+    }
+
+    button {
+      border: 1px solid #9ca3af;
+      background: #fff;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #f3f4f6;
+    }
+
+    .primary-button {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+
+    .primary-button:hover {
+      background: #1d4ed8;
+    }
+
+    .danger-button {
+      background: #fff;
+      color: #b91c1c;
+      border-color: #ef4444;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .calendar-weekdays div {
+      text-align: center;
+      font-weight: bold;
+      padding: 8px 2px;
+      background: #f9fafb;
+      border-top: 1px solid #d1d5db;
+      border-left: 1px solid #d1d5db;
+    }
+
+    .calendar-weekdays div:last-child {
+      border-right: 1px solid #d1d5db;
+    }
+
+    .calendar-weekdays .sunday {
+      color: #dc2626;
+    }
+
+    .calendar-weekdays .saturday {
+      color: #2563eb;
+    }
+
+    .calendar-day {
+      min-height: 112px;
+      border-top: 1px solid #d1d5db;
+      border-left: 1px solid #d1d5db;
+      padding: 6px;
+      background: white;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .calendar-day:nth-child(7n) {
+      border-right: 1px solid #d1d5db;
+    }
+
+    .calendar-day:nth-last-child(-n + 7) {
+      border-bottom: 1px solid #d1d5db;
+    }
+
+    .calendar-day:hover {
+      background: #f8fafc;
+    }
+
+    .calendar-day.other-month {
+      background: #f3f4f6;
+      color: #9ca3af;
+    }
+
+    .calendar-day.selected {
+      outline: 3px solid #60a5fa;
+      outline-offset: -3px;
+      background: #eff6ff;
+    }
+
+    .calendar-day.today .day-number {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      background: #2563eb;
+      color: white;
+    }
+
+    .day-number {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .sunday-cell .day-number {
+      color: #dc2626;
+    }
+
+    .saturday-cell .day-number {
+      color: #2563eb;
+    }
+
+    .today.sunday-cell .day-number,
+    .today.saturday-cell .day-number {
+      color: white;
+    }
+
+    .schedule-preview {
+      font-size: 12px;
+      margin-top: 3px;
+      padding: 3px 5px;
+      border-radius: 4px;
+      background: #dbeafe;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .schedule-preview.incomplete {
+      background: #ffedd5;
+      border-left: 4px solid #f97316;
+    }
+
+    .schedule-preview.complete {
+      background: #dcfce7;
+      border-left: 4px solid #22c55e;
+    }
+
+    .more-text {
+      font-size: 11px;
+      margin-top: 4px;
+      color: #6b7280;
+    }
+
+    .selected-date-title {
+      margin: 0 0 14px;
+      font-size: 21px;
+      border-bottom: 2px solid #dbeafe;
+      padding-bottom: 8px;
     }
 
     .input-group {
@@ -33,289 +227,686 @@
     label {
       display: block;
       font-weight: bold;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
 
-    input {
+    input,
+    textarea {
       width: 100%;
-      padding: 10px;
-      box-sizing: border-box;
+      padding: 9px;
+      border: 1px solid #9ca3af;
+      border-radius: 5px;
       font-size: 16px;
+    }
+
+    textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .checklist {
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      padding: 10px;
+      background: #f9fafb;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+    }
+
+    .check-item input {
+      width: auto;
+      transform: scale(1.2);
+    }
+
+    .check-item label {
+      margin: 0;
+      font-weight: normal;
     }
 
     .button-row {
       display: flex;
-      gap: 10px;
-      margin-top: 15px;
-      margin-bottom: 15px;
       flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
     }
 
-    button {
-      padding: 10px 16px;
-      font-size: 15px;
-      cursor: pointer;
+    .daily-list-title {
+      margin: 18px 0 8px;
+      font-size: 18px;
     }
 
-    ul {
+    .daily-list {
       list-style: none;
       padding: 0;
       margin: 0;
-      border: 1px solid #ccc;
-      min-height: 300px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      min-height: 90px;
+      overflow: hidden;
+    }
+
+    .daily-list li {
+      padding: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      cursor: pointer;
       background: white;
     }
 
-    li {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-    }
-
-    li:last-child {
+    .daily-list li:last-child {
       border-bottom: none;
     }
 
-    li.completed {
-      color: gray;
+    .daily-list li:hover {
+      background: #f9fafb;
     }
 
-    li.today {
-      color: blue;
+    .daily-list li.selected-item {
+      background: #dbeafe;
+    }
+
+    .daily-list .empty-message {
+      color: #6b7280;
+      text-align: center;
+      cursor: default;
+    }
+
+    .schedule-main {
       font-weight: bold;
     }
 
-    li.past {
-      color: gray;
+    .schedule-sub {
+      color: #4b5563;
+      font-size: 13px;
+      margin-top: 3px;
     }
 
-    li.selected {
-      background: #dbeafe;
+    .status-label {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: normal;
+    }
+
+    .status-label.complete {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-label.incomplete {
+      background: #ffedd5;
+      color: #9a3412;
+    }
+
+    .help-text {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 6px 0 0;
+    }
+
+    @media (max-width: 850px) {
+      body {
+        padding: 8px;
+      }
+
+      .app {
+        padding: 12px;
+      }
+
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .calendar-day {
+        min-height: 85px;
+        padding: 4px;
+      }
+
+      .schedule-preview {
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        font-size: 21px;
+      }
+
+      .calendar-header {
+        gap: 6px;
+      }
+
+      .calendar-header h2 {
+        min-width: 130px;
+        font-size: 18px;
+      }
+
+      .calendar-header button {
+        padding: 7px 9px;
+      }
+
+      .calendar-day {
+        min-height: 68px;
+      }
+
+      .schedule-preview {
+        padding: 2px;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="app">
-    <h1>タスクアプリ</h1>
+    <h1>ケアマネ予定管理</h1>
 
-    <div class="input-group">
-      <label for="dateInput">日付</label>
-      <input type="date" id="dateInput">
+    <div class="main-layout">
+      <section class="calendar-area">
+        <div class="calendar-header">
+          <button type="button" onclick="changeMonth(-1)">前月</button>
+          <h2 id="monthTitle"></h2>
+          <button type="button" onclick="changeMonth(1)">次月</button>
+          <button type="button" onclick="goToday()">今日</button>
+        </div>
+
+        <div class="calendar-weekdays">
+          <div class="sunday">日</div>
+          <div>月</div>
+          <div>火</div>
+          <div>水</div>
+          <div>木</div>
+          <div>金</div>
+          <div class="saturday">土</div>
+        </div>
+
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </section>
+
+      <section class="detail-area">
+        <h2 id="selectedDateTitle" class="selected-date-title">日付を選んでください</h2>
+
+        <div class="input-group">
+          <label for="timeInput">時間</label>
+          <input type="time" id="timeInput">
+        </div>
+
+        <div class="input-group">
+          <label for="clientInput">利用者名</label>
+          <input type="text" id="clientInput" placeholder="例：山田様">
+        </div>
+
+        <div class="input-group">
+          <label for="scheduleInput">予定内容</label>
+          <input type="text" id="scheduleInput" placeholder="例：モニタリング訪問">
+        </div>
+
+        <div class="input-group">
+          <label for="memoInput">メモ</label>
+          <textarea id="memoInput" placeholder="確認事項や連絡内容を入力"></textarea>
+        </div>
+
+        <div class="input-group">
+          <label>書類チェック</label>
+          <div class="checklist">
+            <div class="check-item">
+              <input type="checkbox" id="checkMonitoring">
+              <label for="checkMonitoring">モニタリング表</label>
+            </div>
+
+            <div class="check-item">
+              <input type="checkbox" id="checkProgress">
+              <label for="checkProgress">支援経過記録</label>
+            </div>
+
+            <div class="check-item">
+              <input type="checkbox" id="checkServicePlan">
+              <label for="checkServicePlan">サービス利用票</label>
+            </div>
+
+            <div class="check-item">
+              <input type="checkbox" id="checkProvision">
+              <label for="checkProvision">提供票</label>
+            </div>
+
+            <div class="check-item">
+              <input type="checkbox" id="checkMeeting">
+              <label for="checkMeeting">担当者会議記録</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="primary-button" onclick="saveSchedule()">予定を保存</button>
+          <button type="button" onclick="clearForm()">新規入力</button>
+          <button type="button" class="danger-button" onclick="deleteSchedule()">選択した予定を削除</button>
+        </div>
+
+        <p class="help-text">下の予定をクリックすると、内容を修正できます。</p>
+
+        <h3 class="daily-list-title">この日の予定</h3>
+        <ul id="dailyScheduleList" class="daily-list"></ul>
+      </section>
     </div>
-
-    <div class="input-group">
-      <label for="timeInput">時間</label>
-      <input type="time" id="timeInput">
-    </div>
-
-    <div class="input-group">
-      <label for="taskInput">タスク内容</label>
-      <input type="text" id="taskInput" placeholder="例：認定調査">
-    </div>
-
-    <div class="button-row">
-      <button onclick="addTask()">追加</button>
-      <button onclick="deleteTask()">削除</button>
-      <button onclick="toggleComplete()">完了</button>
-      <button onclick="showAllTasks()">全件</button>
-      <button onclick="showTodayTasks()">今日</button>
-      <button onclick="showUnfinishedTasks()">未完了</button>
-      <button onclick="showCompletedTasks()">完了のみ</button>
-      <button onclick="showSelectedDateTasks()">選択日</button>
-    </div>
-
-    <ul id="taskList"></ul>
   </div>
 
   <script>
-    let tasksData = JSON.parse(localStorage.getItem("tasksData")) || [];
-    let displayTaskMap = [];
-    let selectedIndex = null;
+    const STORAGE_KEY = "careManagerSchedules";
+
+    let schedules = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let currentMonth = new Date();
+    currentMonth.setDate(1);
+
+    let selectedDate = formatDate(new Date());
     let editingId = null;
+    let selectedListId = null;
 
-    function saveTasks() {
-      localStorage.setItem("tasksData", JSON.stringify(tasksData));
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     }
 
-    function getTodayText() {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, "0");
-      const d = String(now.getDate()).padStart(2, "0");
-      return `${y}/${m}/${d}`;
+    function parseDate(dateText) {
+      const [year, month, day] = dateText.split("-").map(Number);
+      return new Date(year, month - 1, day);
     }
 
-    function sortTasks() {
-      tasksData.sort((a, b) => {
-        if (a.completed !== b.completed) {
-          return a.completed - b.completed;
+    function formatJapaneseDate(dateText) {
+      const date = parseDate(dateText);
+      const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日（${weekdays[date.getDay()]}）`;
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(schedules));
+    }
+
+    function migrateOldTasks() {
+      if (schedules.length > 0) {
+        return;
+      }
+
+      const oldTasks = JSON.parse(localStorage.getItem("tasksData")) || [];
+
+      if (oldTasks.length === 0) {
+        return;
+      }
+
+      schedules = oldTasks.map(task => ({
+        id: task.id || createId(),
+        date: String(task.date || "").replace(/\//g, "-"),
+        time: task.time || "",
+        client: "",
+        content: task.content || "",
+        memo: task.completed ? "旧タスクアプリで完了済み" : "",
+        checks: {
+          monitoring: false,
+          progress: false,
+          servicePlan: false,
+          provision: false,
+          meeting: false
         }
-        return (a.date + " " + a.time).localeCompare(b.date + " " + b.time);
-      });
+      }));
+
+      saveData();
     }
 
-    function refreshListbox(displayTasks) {
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
-      displayTaskMap = displayTasks;
+    function createId() {
+      if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
 
-      const today = getTodayText();
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
 
-      displayTasks.forEach((task, index) => {
+    function changeMonth(amount) {
+      currentMonth.setMonth(currentMonth.getMonth() + amount);
+      renderCalendar();
+    }
+
+    function goToday() {
+      const today = new Date();
+      currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      selectedDate = formatDate(today);
+      editingId = null;
+      selectedListId = null;
+      clearFormFields();
+      renderCalendar();
+      renderSelectedDate();
+    }
+
+    function selectDate(dateText) {
+      selectedDate = dateText;
+      const date = parseDate(dateText);
+
+      if (
+        date.getFullYear() !== currentMonth.getFullYear() ||
+        date.getMonth() !== currentMonth.getMonth()
+      ) {
+        currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      }
+
+      editingId = null;
+      selectedListId = null;
+      clearFormFields();
+      renderCalendar();
+      renderSelectedDate();
+    }
+
+    function renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+
+      document.getElementById("monthTitle").textContent =
+        `${year}年${month + 1}月`;
+
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+
+      const firstDay = new Date(year, month, 1);
+      const startDate = new Date(year, month, 1 - firstDay.getDay());
+      const todayText = formatDate(new Date());
+
+      for (let i = 0; i < 42; i++) {
+        const cellDate = new Date(startDate);
+        cellDate.setDate(startDate.getDate() + i);
+
+        const dateText = formatDate(cellDate);
+        const cell = document.createElement("div");
+        cell.className = "calendar-day";
+
+        if (cellDate.getMonth() !== month) {
+          cell.classList.add("other-month");
+        }
+
+        if (dateText === selectedDate) {
+          cell.classList.add("selected");
+        }
+
+        if (dateText === todayText) {
+          cell.classList.add("today");
+        }
+
+        if (cellDate.getDay() === 0) {
+          cell.classList.add("sunday-cell");
+        }
+
+        if (cellDate.getDay() === 6) {
+          cell.classList.add("saturday-cell");
+        }
+
+        const dayNumber = document.createElement("div");
+        dayNumber.className = "day-number";
+        dayNumber.textContent = cellDate.getDate();
+        cell.appendChild(dayNumber);
+
+        const daySchedules = schedules
+          .filter(item => item.date === dateText)
+          .sort(compareSchedules);
+
+        daySchedules.slice(0, 3).forEach(schedule => {
+          const preview = document.createElement("div");
+          const allChecked = areAllChecksComplete(schedule.checks);
+
+          preview.className =
+            "schedule-preview " + (allChecked ? "complete" : "incomplete");
+
+          const clientText = schedule.client ? `${schedule.client} ` : "";
+          preview.textContent =
+            `${schedule.time || "--:--"} ${clientText}${schedule.content}`;
+
+          cell.appendChild(preview);
+        });
+
+        if (daySchedules.length > 3) {
+          const more = document.createElement("div");
+          more.className = "more-text";
+          more.textContent = `ほか${daySchedules.length - 3}件`;
+          cell.appendChild(more);
+        }
+
+        cell.addEventListener("click", () => selectDate(dateText));
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderSelectedDate() {
+      document.getElementById("selectedDateTitle").textContent =
+        formatJapaneseDate(selectedDate);
+
+      renderDailyList();
+    }
+
+    function renderDailyList() {
+      const list = document.getElementById("dailyScheduleList");
+      list.innerHTML = "";
+
+      const daySchedules = schedules
+        .filter(item => item.date === selectedDate)
+        .sort(compareSchedules);
+
+      if (daySchedules.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "empty-message";
+        empty.textContent = "予定はありません";
+        list.appendChild(empty);
+        return;
+      }
+
+      daySchedules.forEach(schedule => {
         const li = document.createElement("li");
-        const shortDate = task.date.slice(5);
 
-        li.textContent =
-          (task.completed ? "完了：" : "") +
-          `${shortDate} ${task.time} - ${task.content}`;
-
-        if (task.completed) {
-          li.classList.add("completed");
-        } else if (task.date < today) {
-          li.classList.add("past");
-        } else if (task.date === today) {
-          li.classList.add("today");
+        if (schedule.id === selectedListId) {
+          li.classList.add("selected-item");
         }
 
-        if (selectedIndex === index) {
-          li.classList.add("selected");
+        const main = document.createElement("div");
+        main.className = "schedule-main";
+
+        const status = document.createElement("span");
+        const allChecked = areAllChecksComplete(schedule.checks);
+        status.className =
+          "status-label " + (allChecked ? "complete" : "incomplete");
+        status.textContent = allChecked ? "書類完了" : "書類未完了";
+
+        const clientText = schedule.client ? ` ${schedule.client}` : "";
+        main.textContent = `${schedule.time || "--:--"}${clientText}　${schedule.content}`;
+        main.appendChild(status);
+
+        li.appendChild(main);
+
+        if (schedule.memo) {
+          const sub = document.createElement("div");
+          sub.className = "schedule-sub";
+          sub.textContent = schedule.memo;
+          li.appendChild(sub);
         }
 
-        li.addEventListener("click", () => {
-          selectedIndex = index;
-          refreshListbox(displayTaskMap);
-        });
-
-        li.addEventListener("dblclick", () => {
-          loadTaskToEntry(index);
-        });
-
-        taskList.appendChild(li);
+        li.addEventListener("click", () => loadSchedule(schedule.id));
+        list.appendChild(li);
       });
     }
 
-    function addTask() {
-      const dateValue = document.getElementById("dateInput").value;
-      const timeValue = document.getElementById("timeInput").value;
-      const taskValue = document.getElementById("taskInput").value.trim();
+    function compareSchedules(a, b) {
+      return `${a.date} ${a.time || ""}`.localeCompare(
+        `${b.date} ${b.time || ""}`
+      );
+    }
 
-      if (!dateValue || !timeValue || !taskValue) {
-        alert("全部入力してください");
+    function areAllChecksComplete(checks) {
+      if (!checks) {
+        return false;
+      }
+
+      return (
+        checks.monitoring &&
+        checks.progress &&
+        checks.servicePlan &&
+        checks.provision &&
+        checks.meeting
+      );
+    }
+
+    function getChecksFromForm() {
+      return {
+        monitoring: document.getElementById("checkMonitoring").checked,
+        progress: document.getElementById("checkProgress").checked,
+        servicePlan: document.getElementById("checkServicePlan").checked,
+        provision: document.getElementById("checkProvision").checked,
+        meeting: document.getElementById("checkMeeting").checked
+      };
+    }
+
+    function setChecksToForm(checks) {
+      checks = checks || {};
+
+      document.getElementById("checkMonitoring").checked =
+        Boolean(checks.monitoring);
+
+      document.getElementById("checkProgress").checked =
+        Boolean(checks.progress);
+
+      document.getElementById("checkServicePlan").checked =
+        Boolean(checks.servicePlan);
+
+      document.getElementById("checkProvision").checked =
+        Boolean(checks.provision);
+
+      document.getElementById("checkMeeting").checked =
+        Boolean(checks.meeting);
+    }
+
+    function saveSchedule() {
+      const time = document.getElementById("timeInput").value;
+      const client = document.getElementById("clientInput").value.trim();
+      const content = document.getElementById("scheduleInput").value.trim();
+      const memo = document.getElementById("memoInput").value.trim();
+
+      if (!selectedDate) {
+        alert("カレンダーの日付を選んでください");
         return;
       }
 
-      const dateText = dateValue.replace(/-/g, "/");
+      if (!time) {
+        alert("時間を入力してください");
+        return;
+      }
 
-      if (editingId !== null) {
-        const idx = tasksData.findIndex(t => t.id === editingId);
-        if (idx !== -1) {
-          tasksData[idx].date = dateText;
-          tasksData[idx].time = timeValue;
-          tasksData[idx].content = taskValue;
+      if (!content) {
+        alert("予定内容を入力してください");
+        return;
+      }
+
+      const scheduleData = {
+        date: selectedDate,
+        time,
+        client,
+        content,
+        memo,
+        checks: getChecksFromForm()
+      };
+
+      if (editingId) {
+        const index = schedules.findIndex(item => item.id === editingId);
+
+        if (index !== -1) {
+          schedules[index] = {
+            ...schedules[index],
+            ...scheduleData
+          };
         }
-        editingId = null;
       } else {
-        tasksData.push({
-          id: crypto.randomUUID(),
-          date: dateText,
-          time: timeValue,
-          content: taskValue,
-          completed: false
+        schedules.push({
+          id: createId(),
+          ...scheduleData
         });
       }
 
-      sortTasks();
-      saveTasks();
-      showAllTasks();
+      schedules.sort(compareSchedules);
+      saveData();
 
-      document.getElementById("dateInput").value = "";
+      editingId = null;
+      selectedListId = null;
+      clearFormFields();
+      renderCalendar();
+      renderDailyList();
+    }
+
+    function loadSchedule(id) {
+      const schedule = schedules.find(item => item.id === id);
+
+      if (!schedule) {
+        return;
+      }
+
+      editingId = id;
+      selectedListId = id;
+
+      document.getElementById("timeInput").value = schedule.time || "";
+      document.getElementById("clientInput").value = schedule.client || "";
+      document.getElementById("scheduleInput").value = schedule.content || "";
+      document.getElementById("memoInput").value = schedule.memo || "";
+      setChecksToForm(schedule.checks);
+
+      renderDailyList();
+    }
+
+    function deleteSchedule() {
+      if (!editingId) {
+        alert("削除する予定を、下の一覧から選んでください");
+        return;
+      }
+
+      const schedule = schedules.find(item => item.id === editingId);
+
+      if (!schedule) {
+        return;
+      }
+
+      const message =
+        `${schedule.time} ${schedule.client || ""} ${schedule.content}\n` +
+        "この予定を削除しますか？";
+
+      if (!confirm(message)) {
+        return;
+      }
+
+      schedules = schedules.filter(item => item.id !== editingId);
+      saveData();
+
+      editingId = null;
+      selectedListId = null;
+      clearFormFields();
+      renderCalendar();
+      renderDailyList();
+    }
+
+    function clearForm() {
+      editingId = null;
+      selectedListId = null;
+      clearFormFields();
+      renderDailyList();
+    }
+
+    function clearFormFields() {
       document.getElementById("timeInput").value = "";
-      document.getElementById("taskInput").value = "";
+      document.getElementById("clientInput").value = "";
+      document.getElementById("scheduleInput").value = "";
+      document.getElementById("memoInput").value = "";
+      setChecksToForm({});
     }
 
-    function deleteTask() {
-      if (selectedIndex === null) {
-        alert("選択してください");
-        return;
-      }
-
-      const target = displayTaskMap[selectedIndex];
-      tasksData = tasksData.filter(t => t.id !== target.id);
-
-      saveTasks();
-      selectedIndex = null;
-      showAllTasks();
-    }
-
-    function toggleComplete() {
-      if (selectedIndex === null) {
-        alert("選択してください");
-        return;
-      }
-
-      const target = displayTaskMap[selectedIndex];
-      const idx = tasksData.findIndex(t => t.id === target.id);
-
-      if (idx !== -1) {
-        tasksData[idx].completed = !tasksData[idx].completed;
-      }
-
-      sortTasks();
-      saveTasks();
-      selectedIndex = null;
-      showAllTasks();
-    }
-
-    function loadTaskToEntry(index) {
-      const task = displayTaskMap[index];
-      editingId = task.id;
-
-      document.getElementById("dateInput").value = task.date.replace(/\//g, "-");
-      document.getElementById("timeInput").value = task.time;
-      document.getElementById("taskInput").value = task.content;
-    }
-
-    function showAllTasks() {
-      selectedIndex = null;
-      refreshListbox(tasksData);
-    }
-
-    function showTodayTasks() {
-      const today = getTodayText();
-      const todayTasks = tasksData.filter(t => t.date === today);
-      selectedIndex = null;
-      refreshListbox(todayTasks);
-    }
-
-    function showUnfinishedTasks() {
-      const list = tasksData.filter(t => !t.completed);
-      selectedIndex = null;
-      refreshListbox(list);
-    }
-
-    function showCompletedTasks() {
-      const list = tasksData.filter(t => t.completed);
-      selectedIndex = null;
-      refreshListbox(list);
-    }
-
-    function showSelectedDateTasks() {
-      const dateValue = document.getElementById("dateInput").value;
-
-      if (!dateValue) {
-        alert("日付を選んでください");
-        return;
-      }
-
-      const selectedDate = dateValue.replace(/-/g, "/");
-      const list = tasksData.filter(t => t.date === selectedDate);
-
-      selectedIndex = null;
-      refreshListbox(list);
-    }
-
-    sortTasks();
-    showAllTasks();
+    migrateOldTasks();
+    renderCalendar();
+    renderSelectedDate();
   </script>
 </body>
 </html>
